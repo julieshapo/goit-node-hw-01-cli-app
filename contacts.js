@@ -1,24 +1,48 @@
-const contacts = require("./db");
+const fs = require("fs/promises");
+const path = require("path");
+const { nanoid } = require("nanoid");
 
-const invokeAction = async ({ action, id, title, author }) => {
-  switch (action) {
-    case "read":
-      const allContacts = await contacts.getAllContacts();
-      return console.log(allContacts);
-    case "getById":
-      const contactById = await contacts.getContactById(id);
-      return console.log(contactById);
-    case "remove":
-      const contactToRemove = await contacts.removeContact(id);
-      console.log(contactToRemove);
-    case "add":
-      const newContact = await contacts.addContact({ name, email, phone });
-      return console.log(newContact);
-  }
+const contactsPath = path.join(__dirname, "./db", "contacts.json");
+
+const getAllContacts = async () => {
+  const data = await fs.readFile(contactsPath, "utf-8");
+  return JSON.parse(data);
 };
 
-invokeAction({ action: "read" });
+const getContactById = async (id) => {
+  const contacts = await getAllContacts();
+  const result = contacts.find((item) => item.id === id);
+  return result || null;
+};
+
+const removeContact = async (id) => {
+  const contacts = await getAllContacts();
+  const index = contacts.findIndex((item) => item.id === id);
+
+  if (index === -1) {
+    return null;
+  }
+
+  const [result] = contacts.slice(index, 1);
+  await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
+  return result;
+};
+
+const addContact = async (data) => {
+  const contacts = await getAllContacts();
+  const newContact = {
+    id: nanoid(),
+    ...data,
+  };
+
+  contacts.push(newContact);
+  await fs.writeFile(contactsPath, JSON.stringify(contacts, null, 2));
+  return newContact;
+};
 
 module.exports = {
-  invokeAction,
+  getAllContacts,
+  getContactById,
+  removeContact,
+  addContact,
 };
